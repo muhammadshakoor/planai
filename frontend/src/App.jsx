@@ -578,7 +578,7 @@ const styles = {
   wsList: { flex: 1, overflowY: 'auto', padding: '0 8px' },
   wsItem: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 7, cursor: 'pointer', marginBottom: 2 },
   wsName: { flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  deleteBtn: { background: 'none', border: 'none', color: 'var(--text-muted)', opacity: 0, padding: 2, borderRadius: 4, display: 'flex', alignItems: 'center' },
+  deleteBtn: { background: 'none', border: 'none', color: 'var(--text-muted)', opacity: 0.5, padding: 2, borderRadius: 4, display: 'flex', alignItems: 'center' },
   emptyHint: { fontSize: 12, color: 'var(--text-muted)', padding: '8px 8px' },
   logoutBtn: { margin: 12, background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-muted)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 },
 
