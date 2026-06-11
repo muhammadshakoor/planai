@@ -267,9 +267,39 @@ function AIPanel({ workspace, nodes, onNodesChange }) {
     setLoading(true)
 
     try {
+      // ── Explanation command: separate path, returns raw HTML (no JSON) ─────────
+      const explainMatch = userMsg.match(/generate explanation for (.+)|explain (.+)/i)
+      if (explainMatch) {
+        const nodeName = (explainMatch[1] || explainMatch[2]).trim()
+        const htmlPrompt = `Write a detailed educational lesson about "${nodeName}" for high school students.
+Return ONLY clean HTML — no JSON, no markdown, no code fences.
+Use tags: h2, h3, p, ul, li, strong, em, blockquote.
+Structure: definition → key concepts → 2-3 worked examples → important tips.
+Start directly with <h2>${nodeName}</h2> and write at least 300 words.`
+
+        const { text } = await apiFetch('/ai/generate', { method: 'POST', body: { prompt: htmlPrompt } })
+        const html = text.replace(/```html|```/g, '').trim()
+
+        const freshNodes = await apiFetch(`/workspaces/${workspace.id}/nodes`)
+        const target = freshNodes.find(x => x.title.toLowerCase() === nodeName.toLowerCase())
+        if (target) {
+          await apiFetch(`/nodes/${target.id}`, {
+            method: 'PUT',
+            body: { title: target.title, content: html, is_completed: target.is_completed }
+          })
+          await onNodesChange()
+          setMessages(m => [...m, { role: 'ai', text: `Explanation saved for "${nodeName}". Click the node in the tree to read it.` }])
+        } else {
+          setMessages(m => [...m, { role: 'ai', text: `Node "${nodeName}" not found in the tree. Check the spelling and try again.` }])
+        }
+        setLoading(false)
+        return
+      }
+
+      // ── All other commands: JSON path ─────────────────────────────────────────
       const nodeList = nodes.map(n => `ID:${n.id} ParentID:${n.parent_id || 'null'} "${n.title}"`).join('\n')
 
-      const prompt = `You are a planning assistant for a workspace called "${workspace.name}".
+      const prompt = `You are a planning assistant for workspace "${workspace.name}".
 
 Current nodes:
 ${nodeList || '(empty)'}
@@ -278,63 +308,21 @@ User command: "${userMsg}"
 
 Reply with a JSON object ONLY — no markdown, no explanation, raw JSON only.
 
----
+ACTION 1 — generate top level plan:
+{"action":"create_nodes","nodes":[{"title":"Algebra","parent_id":null},{"title":"Geometry","parent_id":null}],"message":"Top level plan created."}
+RULE: ALL parent_id must be null.
 
-ACTION 1 — "generate top level plan":
-{
-  "action": "create_nodes",
-  "nodes": [
-    { "title": "Algebra", "parent_id": null },
-    { "title": "Geometry", "parent_id": null }
-  ],
-  "message": "Top level plan created."
-}
-RULE: ALL parent_id must be null. Never add children here.
+ACTION 2 — generate subtopics for X:
+{"action":"create_nodes","nodes":[{"title":"Variables","parent_id":"Algebra"},{"title":"Linear Equations","parent_id":"Algebra"}],"message":"Subtopics created under Algebra."}
+RULE: Use EXACT parent title from the node list. Generate 4-6 children only.
 
----
-
-ACTION 2 — "generate subtopics for X":
-{
-  "action": "create_nodes",
-  "nodes": [
-    { "title": "Variables", "parent_id": "Algebra" },
-    { "title": "Linear Equations", "parent_id": "Algebra" }
-  ],
-  "message": "Subtopics created under Algebra."
-}
-RULE: Use EXACT title of the parent from the node list above. Generate 4-6 children only.
-
----
-
-ACTION 3 — "generate explanation for X" or "explain X":
-{
-  "action": "set_content",
-  "node_title": "Variables",
-  "content": "<h2>Variables</h2><p>A variable is a symbol...</p><h3>Key Points</h3><ul><li>...</li></ul><h3>Examples</h3><p>...</p>",
-  "message": "Explanation generated for Variables."
-}
-RULE: Generate a complete, rich HTML lesson. Use h2, h3, p, ul, li, strong, em, blockquote tags. Include: definition, key concepts, worked examples, tips. Make it educational and detailed (minimum 300 words in HTML).
-
----
-
-ACTION 4 — anything else:
-{
-  "action": "message",
-  "message": "Your response here."
-}
-
----
-
-IMPORTANT:
-- Node titles must be short (2-5 words)
-- Match the subject "${workspace.name}"
-- For subtopics, ONLY create children under the requested parent — do NOT create nodes under other parents`
+ACTION 3 — anything else:
+{"action":"message","message":"Your response here."}`
 
       const { text } = await apiFetch('/ai/generate', { method: 'POST', body: { prompt } })
 
       let parsed
       try {
-        // Strip markdown code fences, then extract first JSON object
         const stripped = text.replace(/```[\w]*\n?/g, '').trim()
         const match = stripped.match(/\{[\s\S]*\}/)
         parsed = JSON.parse(match ? match[0] : stripped)
@@ -345,7 +333,6 @@ IMPORTANT:
       }
 
       if (parsed.action === 'create_nodes') {
-        // fetch fresh nodes so parent matching is never stale
         const freshNodes = await apiFetch(`/workspaces/${workspace.id}/nodes`)
         const created = {}
         for (const n of parsed.nodes) {
@@ -364,19 +351,6 @@ IMPORTANT:
         }
         await onNodesChange()
         setMessages(m => [...m, { role: 'ai', text: parsed.message || `Created ${parsed.nodes.length} nodes.` }])
-      } else if (parsed.action === 'set_content') {
-        const freshNodes = await apiFetch(`/workspaces/${workspace.id}/nodes`)
-        const target = freshNodes.find(x => x.title.toLowerCase() === String(parsed.node_title).toLowerCase())
-        if (target) {
-          await apiFetch(`/nodes/${target.id}`, {
-            method: 'PUT',
-            body: { title: target.title, content: parsed.content, is_completed: target.is_completed }
-          })
-          await onNodesChange()
-          setMessages(m => [...m, { role: 'ai', text: parsed.message || `Explanation saved to "${parsed.node_title}". Click the node to read it.` }])
-        } else {
-          setMessages(m => [...m, { role: 'ai', text: `Could not find node "${parsed.node_title}". Make sure it exists in the tree first.` }])
-        }
       } else {
         setMessages(m => [...m, { role: 'ai', text: parsed.message || text }])
       }
