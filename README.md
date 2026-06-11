@@ -3,7 +3,7 @@
 ## Project Structure
 ```
 planai/
-├── backend/      → Node.js + Express + SQLite
+├── backend/      → Node.js + Express + JSON file database
 └── frontend/     → React + Vite
 ```
 
@@ -44,7 +44,7 @@ Open: http://localhost:5173
 - Create multiple Workspaces
 - AI generates hierarchical plan nodes on command
 - Click any node → execution view with notes + complete button
-- Persistent data in SQLite (planai.db file created automatically)
+- Persistent data in a simple JSON file (db.json, created automatically)
 
 ## AI Commands (type in the chat panel)
 - `Generate top level plan` → creates root nodes
@@ -53,6 +53,6 @@ Open: http://localhost:5173
 - `Generate execution steps for Understand Variables` → detailed subtasks
 
 ## Tech Stack
-- Backend: Node.js, Express, SQLite (better-sqlite3), JWT, bcryptjs
+- Backend: Node.js, Express, JSON file storage, JWT, bcryptjs
 - Frontend: React, Vite
-- AI: Google Gemini 2.0 Flash (free tier)
+- AI: Google Gemini 2.5 Flash Lite (free tier)
