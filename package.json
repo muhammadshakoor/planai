@@ -1,0 +1,8 @@
+{
+  "name": "planai",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build && cd ../backend && npm install",
+    "start": "node backend/server.js"
+  }
+}
