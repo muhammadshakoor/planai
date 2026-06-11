@@ -334,8 +334,10 @@ IMPORTANT:
 
       let parsed
       try {
-        const clean = text.replace(/```json|```/g, '').trim()
-        parsed = JSON.parse(clean)
+        // Strip markdown code fences, then extract first JSON object
+        const stripped = text.replace(/```[\w]*\n?/g, '').trim()
+        const match = stripped.match(/\{[\s\S]*\}/)
+        parsed = JSON.parse(match ? match[0] : stripped)
       } catch {
         setMessages(m => [...m, { role: 'ai', text: text }])
         setLoading(false)
@@ -343,12 +345,14 @@ IMPORTANT:
       }
 
       if (parsed.action === 'create_nodes') {
+        // fetch fresh nodes so parent matching is never stale
+        const freshNodes = await apiFetch(`/workspaces/${workspace.id}/nodes`)
         const created = {}
         for (const n of parsed.nodes) {
           let parentId = null
           if (n.parent_id) {
             const pid = String(n.parent_id)
-            const existing = nodes.find(x => x.title.toLowerCase() === pid.toLowerCase())
+            const existing = freshNodes.find(x => x.title.toLowerCase() === pid.toLowerCase())
             if (existing) parentId = existing.id
             else if (created[pid]) parentId = created[pid]
           }
@@ -361,7 +365,8 @@ IMPORTANT:
         await onNodesChange()
         setMessages(m => [...m, { role: 'ai', text: parsed.message || `Created ${parsed.nodes.length} nodes.` }])
       } else if (parsed.action === 'set_content') {
-        const target = nodes.find(x => x.title.toLowerCase() === String(parsed.node_title).toLowerCase())
+        const freshNodes = await apiFetch(`/workspaces/${workspace.id}/nodes`)
+        const target = freshNodes.find(x => x.title.toLowerCase() === String(parsed.node_title).toLowerCase())
         if (target) {
           await apiFetch(`/nodes/${target.id}`, {
             method: 'PUT',
@@ -689,14 +694,14 @@ const styles = {
   btnSuccess: { background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.4)', color: 'var(--success)', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600 },
 
   // AI panel
-  aiPanel: { flex: 1, display: 'flex', flexDirection: 'column' },
-  aiHeader: { padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', background: 'var(--surface)' },
-  aiMessages: { flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 },
+  aiPanel: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' },
+  aiHeader: { padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', background: 'var(--surface)', flexShrink: 0 },
+  aiMessages: { flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 0 },
   userMsg: { alignSelf: 'flex-end', background: 'var(--accent)', borderRadius: '12px 12px 2px 12px', padding: '8px 14px', maxWidth: '80%' },
   aiMsg: { alignSelf: 'flex-start', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px 12px 12px 2px', padding: '8px 14px', maxWidth: '90%' },
   msgText: { fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', fontFamily: 'inherit' },
   typing: { color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' },
-  aiInput: { padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 },
+  aiInput: { padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8, flexShrink: 0 },
   chatInput: { flex: 1, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 14px', color: 'var(--text)', fontSize: 13 },
   sendBtn: { background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '9px 14px', color: '#fff', display: 'flex', alignItems: 'center' }
 }
