@@ -261,7 +261,7 @@ function AIPanel({ workspace, nodes, onNodesChange }) {
 
   async function send() {
     if (!input.trim() || loading) return
-    const userMsg = input.trim()
+    const userMsg = input.trim().replace(/^["']|["']$/g, '')
     setInput('')
     setMessages(m => [...m, { role: 'user', text: userMsg }])
     setLoading(true)
@@ -270,7 +270,7 @@ function AIPanel({ workspace, nodes, onNodesChange }) {
       // ── Explanation command: separate path, returns raw HTML (no JSON) ─────────
       const explainMatch = userMsg.match(/generate explanation for (.+)|explain (.+)/i)
       if (explainMatch) {
-        const nodeName = (explainMatch[1] || explainMatch[2]).trim()
+        const nodeName = (explainMatch[1] || explainMatch[2]).trim().replace(/^["']|["']$/g, '')
         const htmlPrompt = `Write a detailed educational lesson about "${nodeName}" for high school students.
 Return ONLY clean HTML — no JSON, no markdown, no code fences.
 Use tags: h2, h3, p, ul, li, strong, em, blockquote.
@@ -314,9 +314,13 @@ RULE: ALL parent_id must be null.
 
 ACTION 2 — generate subtopics for X:
 {"action":"create_nodes","nodes":[{"title":"Variables","parent_id":"Algebra"},{"title":"Linear Equations","parent_id":"Algebra"}],"message":"Subtopics created under Algebra."}
-RULE: Use EXACT parent title from the node list. Generate 4-6 children only.
+RULE: Use EXACT parent title from node list. Generate 4-6 children only.
 
-ACTION 3 — anything else:
+ACTION 3 — add node: TITLE under PARENT:
+{"action":"create_nodes","nodes":[{"title":"Practice Problems","parent_id":"Algebra"}],"message":"Node added under Algebra."}
+RULE: Extract title and parent from the command, create exactly 1 node.
+
+ACTION 4 — anything else:
 {"action":"message","message":"Your response here."}`
 
       const { text } = await apiFetch('/ai/generate', { method: 'POST', body: { prompt } })
@@ -350,9 +354,9 @@ ACTION 3 — anything else:
           created[n.title] = newNode.id
         }
         await onNodesChange()
-        setMessages(m => [...m, { role: 'ai', text: parsed.message || `Created ${parsed.nodes.length} nodes.` }])
+        setMessages(m => [...m, { role: 'ai', text: parsed.message || `Done — created ${parsed.nodes.length} node(s).` }])
       } else {
-        setMessages(m => [...m, { role: 'ai', text: parsed.message || text }])
+        setMessages(m => [...m, { role: 'ai', text: parsed.message || 'Done.' }])
       }
     } catch (e) {
       setMessages(m => [...m, { role: 'ai', text: 'Error: ' + e.message }])
