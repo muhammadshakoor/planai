@@ -23,3 +23,18 @@ body {
 
 button { cursor: pointer; font-family: inherit; }
 input, textarea { font-family: inherit; }
+
+.html-content { line-height: 1.8; color: var(--text); }
+.html-content h1, .html-content h2 { color: var(--accent-light); margin: 20px 0 10px; font-size: 1.3em; }
+.html-content h3 { color: var(--text); margin: 16px 0 8px; font-size: 1.1em; }
+.html-content p { margin-bottom: 12px; font-size: 14px; }
+.html-content ul, .html-content ol { padding-left: 20px; margin-bottom: 12px; }
+.html-content li { margin-bottom: 6px; font-size: 14px; }
+.html-content strong { color: var(--accent-light); }
+.html-content em { color: var(--text-muted); font-style: italic; }
+.html-content code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 13px; font-family: monospace; }
+.html-content pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px; overflow-x: auto; }
+.html-content blockquote { border-left: 3px solid var(--accent); padding-left: 14px; color: var(--text-muted); margin-bottom: 12px; }
+.html-content table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; }
+.html-content th { background: var(--surface2); padding: 8px 12px; text-align: left; border: 1px solid var(--border); }
+.html-content td { padding: 8px 12px; border: 1px solid var(--border); }

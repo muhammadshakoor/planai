@@ -164,6 +164,15 @@ function ExecutionPanel({ node, onUpdate, onClose }) {
   const [content, setContent] = useState(node.content || '')
   const [saving, setSaving] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [preview, setPreview] = useState(false)
+
+  const isHtml = content.trim().startsWith('<')
+
+  // Auto-switch to preview when node has HTML content
+  useEffect(() => {
+    setContent(node.content || '')
+    setPreview(node.content?.trim().startsWith('<') || false)
+  }, [node.id])
 
   async function save() {
     setSaving(true)
@@ -189,25 +198,48 @@ function ExecutionPanel({ node, onUpdate, onClose }) {
     <div style={styles.execPanel}>
       <div style={styles.execHeader}>
         <h3 style={styles.execTitle}>{node.title}</h3>
-        <button style={styles.iconBtn} onClick={onClose}><Icon name="x" size={16} /></button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {isHtml && (
+            <button style={preview ? styles.btnPrimarySmall : styles.btnSecondarySmall} onClick={() => setPreview(!preview)}>
+              {preview ? 'Edit' : 'Preview'}
+            </button>
+          )}
+          <button style={styles.iconBtn} onClick={onClose}><Icon name="x" size={16} /></button>
+        </div>
       </div>
 
       <div style={styles.execBody}>
         {node.is_completed && (
           <div style={styles.completedBadge}>✓ Completed</div>
         )}
-        <p style={styles.label}>Notes / Content</p>
-        <textarea
-          style={styles.textarea}
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          placeholder="Add notes, details, or content for this task..."
-          rows={8}
-        />
+
+        {preview && isHtml ? (
+          <div
+            className="html-content"
+            style={styles.htmlPreview}
+            dangerouslySetInnerHTML={{ __html: content }}
+          />
+        ) : (
+          <>
+            <p style={styles.label}>
+              {isHtml ? 'HTML Content (switch to Preview to read)' : 'Notes / Content'}
+            </p>
+            <textarea
+              style={styles.textarea}
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              placeholder={`Add notes, or ask AI: "Generate explanation for ${node.title}"`}
+              rows={8}
+            />
+          </>
+        )}
+
         <div style={styles.execActions}>
-          <button style={styles.btnSecondary} onClick={save} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Notes'}
-          </button>
+          {!preview && (
+            <button style={styles.btnSecondary} onClick={save} disabled={saving}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          )}
           {!node.is_completed && (
             <button style={styles.btnSuccess} onClick={complete} disabled={completing}>
               {completing ? '...' : '✓ Mark Complete'}
@@ -222,7 +254,7 @@ function ExecutionPanel({ node, onUpdate, onClose }) {
 // ── AI Chat Panel ─────────────────────────────────────────────────────────────
 function AIPanel({ workspace, nodes, onNodesChange }) {
   const [messages, setMessages] = useState([
-    { role: 'ai', text: `Hi! I'm your planning assistant for "${workspace.name}". Try:\n• "Generate top level plan"\n• "Generate subtopics for Math"\n• "Add node: Review Chapter 5 under Algebra"` }
+    { role: 'ai', text: `Hi! I'm your planning assistant for "${workspace.name}". Try:\n• "Generate top level plan"\n• "Generate subtopics for Algebra"\n• "Generate explanation for Variables"\n• "Add node: Practice Problems under Algebra"` }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -239,37 +271,64 @@ function AIPanel({ workspace, nodes, onNodesChange }) {
 
       const prompt = `You are a planning assistant for a workspace called "${workspace.name}".
 
-Current nodes in workspace:
+Current nodes:
 ${nodeList || '(empty)'}
 
 User command: "${userMsg}"
 
-Your job: Respond with a JSON object ONLY. No explanation, no markdown, just raw JSON.
+Reply with a JSON object ONLY — no markdown, no explanation, raw JSON only.
 
-If the command is to generate a plan, create nodes. Format:
+---
+
+ACTION 1 — "generate top level plan":
 {
   "action": "create_nodes",
   "nodes": [
-    { "title": "Node Title", "parent_id": null },
-    { "title": "Child Node", "parent_id": "PARENT_TITLE" }
+    { "title": "Algebra", "parent_id": null },
+    { "title": "Geometry", "parent_id": null }
   ],
-  "message": "Brief confirmation message"
+  "message": "Top level plan created."
 }
+RULE: ALL parent_id must be null. Never add children here.
 
-If parent_id is "PARENT_TITLE", use the title of the parent node to match it.
-If no parent is specified, use null (top-level node).
+---
 
-If the command is unclear or a question, respond:
+ACTION 2 — "generate subtopics for X":
+{
+  "action": "create_nodes",
+  "nodes": [
+    { "title": "Variables", "parent_id": "Algebra" },
+    { "title": "Linear Equations", "parent_id": "Algebra" }
+  ],
+  "message": "Subtopics created under Algebra."
+}
+RULE: Use EXACT title of the parent from the node list above. Generate 4-6 children only.
+
+---
+
+ACTION 3 — "generate explanation for X" or "explain X":
+{
+  "action": "set_content",
+  "node_title": "Variables",
+  "content": "<h2>Variables</h2><p>A variable is a symbol...</p><h3>Key Points</h3><ul><li>...</li></ul><h3>Examples</h3><p>...</p>",
+  "message": "Explanation generated for Variables."
+}
+RULE: Generate a complete, rich HTML lesson. Use h2, h3, p, ul, li, strong, em, blockquote tags. Include: definition, key concepts, worked examples, tips. Make it educational and detailed (minimum 300 words in HTML).
+
+---
+
+ACTION 4 — anything else:
 {
   "action": "message",
-  "message": "Your helpful response here"
+  "message": "Your response here."
 }
 
-Rules:
-- Generate 3-7 relevant items per level
-- Keep titles concise (2-6 words)
-- Match the workspace topic "${workspace.name}"
-- If user says "generate subtopics for X", find node X and create children under it`
+---
+
+IMPORTANT:
+- Node titles must be short (2-5 words)
+- Match the subject "${workspace.name}"
+- For subtopics, ONLY create children under the requested parent — do NOT create nodes under other parents`
 
       const { text } = await apiFetch('/ai/generate', { method: 'POST', body: { prompt } })
 
@@ -284,16 +343,14 @@ Rules:
       }
 
       if (parsed.action === 'create_nodes') {
-        // create nodes via API
         const created = {}
         for (const n of parsed.nodes) {
           let parentId = null
           if (n.parent_id) {
-            // try to find by title in existing nodes or just-created
             const pid = String(n.parent_id)
             const existing = nodes.find(x => x.title.toLowerCase() === pid.toLowerCase())
             if (existing) parentId = existing.id
-            else if (created[n.parent_id]) parentId = created[n.parent_id]
+            else if (created[pid]) parentId = created[pid]
           }
           const newNode = await apiFetch('/nodes', {
             method: 'POST',
@@ -302,7 +359,19 @@ Rules:
           created[n.title] = newNode.id
         }
         await onNodesChange()
-        setMessages(m => [...m, { role: 'ai', text: parsed.message || `Created ${parsed.nodes.length} nodes!` }])
+        setMessages(m => [...m, { role: 'ai', text: parsed.message || `Created ${parsed.nodes.length} nodes.` }])
+      } else if (parsed.action === 'set_content') {
+        const target = nodes.find(x => x.title.toLowerCase() === String(parsed.node_title).toLowerCase())
+        if (target) {
+          await apiFetch(`/nodes/${target.id}`, {
+            method: 'PUT',
+            body: { title: target.title, content: parsed.content, is_completed: target.is_completed }
+          })
+          await onNodesChange()
+          setMessages(m => [...m, { role: 'ai', text: parsed.message || `Explanation saved to "${parsed.node_title}". Click the node to read it.` }])
+        } else {
+          setMessages(m => [...m, { role: 'ai', text: `Could not find node "${parsed.node_title}". Make sure it exists in the tree first.` }])
+        }
       } else {
         setMessages(m => [...m, { role: 'ai', text: parsed.message || text }])
       }
@@ -615,6 +684,8 @@ const styles = {
   textarea: { background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, color: 'var(--text)', fontSize: 14, resize: 'vertical', minHeight: 160 },
   execActions: { display: 'flex', gap: 10 },
   btnSecondary: { background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600 },
+  btnSecondarySmall: { background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600 },
+  htmlPreview: { flex: 1, overflowY: 'auto', padding: '4px 2px' },
   btnSuccess: { background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.4)', color: 'var(--success)', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600 },
 
   // AI panel
