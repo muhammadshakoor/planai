@@ -1,0 +1,144 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "demo@planai.com",
+      "password": "$2a$10$jGvfynmqbvd42P32GCwAQ.31JviZGpoVT2Ntqwqgt2RwlTfYBbRhG"
+    }
+  ],
+  "workspaces": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "name": "Exam Preparation"
+    }
+  ],
+  "nodes": [
+    {
+      "id": 1,
+      "workspace_id": 1,
+      "parent_id": null,
+      "title": "Exam Strategy",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 2,
+      "workspace_id": 1,
+      "parent_id": null,
+      "title": "Study Materials",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 3,
+      "workspace_id": 1,
+      "parent_id": null,
+      "title": "Practice Tests",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 4,
+      "workspace_id": 1,
+      "parent_id": 1,
+      "title": "Time Management",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 5,
+      "workspace_id": 1,
+      "parent_id": 1,
+      "title": "Exam Day Tips",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 6,
+      "workspace_id": 1,
+      "parent_id": 2,
+      "title": "Textbooks",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 7,
+      "workspace_id": 1,
+      "parent_id": 2,
+      "title": "Online Resources",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 8,
+      "workspace_id": 1,
+      "parent_id": 3,
+      "title": "Past Papers",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 9,
+      "workspace_id": 1,
+      "parent_id": 3,
+      "title": "Mock Exams",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 10,
+      "workspace_id": 1,
+      "parent_id": null,
+      "title": "Algebra",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 11,
+      "workspace_id": 1,
+      "parent_id": null,
+      "title": "Calculus",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 12,
+      "workspace_id": 1,
+      "parent_id": null,
+      "title": "Geometry",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 13,
+      "workspace_id": 1,
+      "parent_id": null,
+      "title": "Trigonometry",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    },
+    {
+      "id": 14,
+      "workspace_id": 1,
+      "parent_id": null,
+      "title": "Statistics",
+      "content": "",
+      "is_completed": false,
+      "position": 0
+    }
+  ]
+}
