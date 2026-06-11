@@ -323,15 +323,13 @@ RULE: Extract title and parent from the command, create exactly 1 node.
 ACTION 4 — anything else:
 {"action":"message","message":"Your response here."}`
 
-      const { text } = await apiFetch('/ai/generate', { method: 'POST', body: { prompt } })
+      const { text } = await apiFetch('/ai/generate', { method: 'POST', body: { prompt, forceJson: true } })
 
       let parsed
       try {
-        const stripped = text.replace(/```[\w]*\n?/g, '').trim()
-        const match = stripped.match(/\{[\s\S]*\}/)
-        parsed = JSON.parse(match ? match[0] : stripped)
+        parsed = JSON.parse(text)
       } catch {
-        setMessages(m => [...m, { role: 'ai', text: text }])
+        setMessages(m => [...m, { role: 'ai', text: text || 'No response from AI. Please try again.' }])
         setLoading(false)
         return
       }

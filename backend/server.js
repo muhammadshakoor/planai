@@ -122,19 +122,23 @@ app.delete('/api/nodes/:id', auth, (req, res) => {
 
 // ── Gemini proxy ──────────────────────────────────────────────────────────────
 app.post('/api/ai/generate', auth, async (req, res) => {
-  const { prompt } = req.body;
+  const { prompt, forceJson = false } = req.body;
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'Gemini API key not configured in .env' });
   try {
+    const body = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: forceJson
+        ? { temperature: 0.1, maxOutputTokens: 2048, responseMimeType: 'application/json' }
+        : { temperature: 0.4, maxOutputTokens: 4096 }
+    };
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-      }
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
     );
     const data = await response.json();
+    if (data.error) return res.status(500).json({ error: `Gemini: ${data.error.message}` });
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!text) return res.status(500).json({ error: 'Gemini returned an empty response. Try again.' });
     res.json({ text });
   } catch (e) {
     res.status(500).json({ error: 'AI request failed: ' + e.message });
